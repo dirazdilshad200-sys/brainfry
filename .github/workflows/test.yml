@@ -63,7 +63,7 @@ jobs:
           </dict>
           </plist>
           EOF
-          codesign --sign - --entitlements /tmp/bfjit.entitlements --force "$BIN/bfjit"
+          codesign --sign - --options runtime --entitlements /tmp/bfjit.entitlements --force "$BIN/bfjit"
 
       - name: write test programs
         shell: bash
