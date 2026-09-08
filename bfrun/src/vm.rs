@@ -22,7 +22,9 @@ impl std::fmt::Display for RunError {
             RunError::PointerUnderflow => {
                 write!(f, "pointer moved left of cell 0")
             }
-            RunError::Io(err) => write!(f, "I/O error: {err}"),
+            RunError::Io(err) => {
+                write!(f, "I/O error: {err} (raw_os_error={:?}, kind={:?})", err.raw_os_error(), err.kind())
+            }
         }
     }
 }
