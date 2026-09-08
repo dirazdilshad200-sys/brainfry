@@ -47,9 +47,17 @@ impl Vm {
     }
 
     pub fn run(&mut self, ops: &[Op]) -> Result<(), RunError> {
+        // stdin is only grabbed the first time an Input op actually runs.
+        // On Windows, a process spawned deep in a CI runner's process chain
+        // can inherit a null/invalid stdin handle even when nothing ever
+        // reads from it -- merely calling io::stdin().lock() latches that
+        // handle in, and later unrelated I/O (a stdout write, a flush) can
+        // then fail against it. Programs that never use `,` never need
+        // stdin at all, so they should never touch it.
         let stdin = io::stdin();
+        let mut stdin_lock: Option<io::StdinLock> = None;
+
         let stdout = io::stdout();
-        let mut stdin_lock = stdin.lock();
         let mut stdout_lock = stdout.lock();
 
         let mut pc = 0usize;
@@ -83,7 +91,8 @@ impl Vm {
                     // set 0 or -1 instead; unchanged is the safest default
                     // since it doesn't invent a value the program didn't ask
                     // for).
-                    if stdin_lock.read_exact(&mut byte).is_ok() {
+                    let lock = stdin_lock.get_or_insert_with(|| stdin.lock());
+                    if lock.read_exact(&mut byte).is_ok() {
                         *self.current_cell() = byte[0];
                     }
                 }
